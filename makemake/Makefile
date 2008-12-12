@@ -63,6 +63,9 @@ all:	 makemake
 makemake:	makemake.o $(OBJFILES) $(CCLIBFLAGS)
 	$(CXX) $(CXXFLAGS) -o makemake makemake.o $(OBJFILES) $(CCLIBFLAGS)
 
+install: makemake
+	cp makemake ~/bin
+
 #
 # Dependencies
 #
