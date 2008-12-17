@@ -15,4 +15,4 @@ I've made a few small fixes and changes (like including
 
 The original can be found at:
 
-http://www.cs.rit.edu/~swm/makemake/
+[Makemake homepage @ cs.rit.edu](http://www.cs.rit.edu/~swm/makemake/)
