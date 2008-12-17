@@ -72,7 +72,7 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
   } else {
     cout << "# Created by makemake (" ;
   }
-  cout << "Sparc " __DATE__ ") on " << ctime( &now );
+  cout << "Darwin " __DATE__ ") on " << ctime( &now );
   cout << "#\n";
   cout << "\n";
   cout << "#\n";
