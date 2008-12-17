@@ -128,8 +128,8 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
   } else if(!noDebugFlag){
     cout << "########## Default flags (redefine these with a header.mak file if desired)\n";
     if(useGCC) {
-      cout << "CXXFLAGS =\t-ggdb\n";
-      cout << "CFLAGS =\t-ggdb\n";
+      cout << "CXXFLAGS =\t-ggdb -Wall -ansi -pedantic\n";
+      cout << "CFLAGS =\t-ggdb -Wall -ansi -pedantic\n";
     } else {
       cout << "CXXFLAGS =\t-g -xildoff -xsb\n";
       cout << "CFLAGS =\t-g\n";

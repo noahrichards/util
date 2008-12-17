@@ -1,5 +1,5 @@
 #
-# Created by gmakemake (Sparc Jun 17 2005) on Wed Jun 22 14:01:43 2005
+# Created by gmakemake (Sparc Dec 11 2008) on Tue Dec 16 22:39:38 2008
 #
 
 #
@@ -7,12 +7,14 @@
 #
 
 .SUFFIXES:
-.SUFFIXES:	.a .o .c .C .cpp
+.SUFFIXES:	.a .o .c .C .cpp .s
 .c.o:
 		$(COMPILE.c) $<
 .C.o:
 		$(COMPILE.cc) $<
 .cpp.o:
+		$(COMPILE.cc) $<
+.s.o:
 		$(COMPILE.cc) $<
 .c.a:
 		$(COMPILE.c) -o $% $<
@@ -47,32 +49,33 @@ CCLIBFLAGS =
 ########## End of flags from header.mak
 
 
-CPP_FILES =	 dirlist.cpp makemake.cpp write.cpp
+CPP_FILES =	dirlist.cpp makemake.cpp write.cpp
 C_FILES =	
-H_FILES =	 dirlist.h write.h
-SOURCEFILES =	$(H_FILES) $(CPP_FILES) $(C_FILES)
+S_FILES =	
+H_FILES =	dirlist.h write.h
+SOURCEFILES =	$(H_FILES) $(CPP_FILES) $(C_FILES) $(S_FILES)
 .PRECIOUS:	$(SOURCEFILES)
-OBJFILES =	 dirlist.o write.o
+OBJFILES =	dirlist.o write.o 
 
 #
 # Main targets
 #
 
-all:	 makemake 
+all:	makemake 
 
-makemake:	makemake.o $(OBJFILES) $(CCLIBFLAGS)
+install:	makemake
+	cp makemake ~/bin/gmakemake
+
+makemake:	makemake.o $(OBJFILES)
 	$(CXX) $(CXXFLAGS) -o makemake makemake.o $(OBJFILES) $(CCLIBFLAGS)
-
-install: makemake
-	cp makemake ~/bin
 
 #
 # Dependencies
 #
 
-dirlist.o:	 dirlist.h
-makemake.o:	 dirlist.h write.h
-write.o:	 dirlist.h write.h
+dirlist.o:	dirlist.h
+makemake.o:	dirlist.h write.h
+write.o:	dirlist.h write.h
 
 #
 # Housekeeping
@@ -84,7 +87,7 @@ archive.tgz:	$(SOURCEFILES) Makefile
 	tar cf - $(SOURCEFILES) Makefile | gzip > archive.tgz
 
 clean:
-	-/bin/rm -r $(OBJFILES) makemake.o core 2> /dev/null
+	-/bin/rm $(OBJFILES) makemake.o core 2> /dev/null
 
 realclean:        clean
-	/bin/rm -rf  makemake 
+	-/bin/rm -rf makemake 
