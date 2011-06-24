@@ -28,13 +28,16 @@ using namespace std;
 class Write {
 public: // Constructor
 
-  Write( DirList &dirlist, bool noDebugFlag, bool useGCC, const string &header_file, const string &programs_file );
+  Write(DirList &dirlist, bool noDebugFlag, bool useGCC,
+        const string &header_file,
+        const string &programs_file,
+        const string& custom_targets_file );
 
 private: // Helper functions
 
   void write_header(bool noDebugFlag, bool useGCC, string header_file);
   void write_lists( DirList &dirlist );
-  void write_main_targets( DirList &dirlist, string programs_file );
+  void write_main_targets( DirList &dirlist, string programs_file, string custom_targets_file );
   void write_main_target_list( const set<string> &list,
                                string compile,
                                string local_libs );

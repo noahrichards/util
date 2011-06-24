@@ -1,5 +1,5 @@
 #
-# Created by gmakemake (Sparc Dec 11 2008) on Tue Dec 16 22:39:38 2008
+# Created by makemake (Darwin Jun 23 2011) on Thu Jun 23 21:15:50 2011
 #
 
 #
@@ -39,14 +39,13 @@ LINK.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 COMPILE.c = $(CC) $(CFLAGS) $(CPPFLAGS) -c
 COMPILE.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) -c
 
-########## Flags from header.mak
-
-CXXFLAGS =	-ggdb -Wall
-CFLAGS =	-ggdb -Wall
+########## Default flags (redefine these with a header.mak file if desired)
+CXXFLAGS =	-ggdb -Wall -ansi -pedantic
+CFLAGS =	-ggdb -Wall -ansi -pedantic
+BINDIR =./bin
 CLIBFLAGS =	-lm
 CCLIBFLAGS =	
-
-########## End of flags from header.mak
+########## End of default flags
 
 
 CPP_FILES =	dirlist.cpp makemake.cpp write.cpp
@@ -61,13 +60,18 @@ OBJFILES =	dirlist.o write.o
 # Main targets
 #
 
-all:	makemake 
+all:	${BINDIR}/makemake 
 
-install:	makemake
-	cp makemake ~/bin/gmakemake
+${BINDIR}/makemake:	makemake.o $(OBJFILES)
+	@mkdir -p ${BINDIR}
+	$(CXX) $(CXXFLAGS) -o ${BINDIR}/makemake makemake.o $(OBJFILES) $(CCLIBFLAGS)
 
-makemake:	makemake.o $(OBJFILES)
-	$(CXX) $(CXXFLAGS) -o makemake makemake.o $(OBJFILES) $(CCLIBFLAGS)
+########## Custom targets from custom_targets.mak
+
+install:	${BINDIR}/makemake
+	cp ${BINDIR}/makemake ~/bin/makemake
+
+########## End targets from custom_targets.mak
 
 #
 # Dependencies

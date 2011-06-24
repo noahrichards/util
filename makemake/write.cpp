@@ -36,10 +36,11 @@
 using namespace std;
 
 Write::Write( DirList &dirlist, bool noDebugFlag, bool useGCC,
-              const string &header_file, const string &programs_file ){
+              const string &header_file, const string &programs_file,
+              const string& custom_targets_file) {
   write_header(noDebugFlag, useGCC, header_file);
   write_lists( dirlist );
-  write_main_targets( dirlist, programs_file );
+  write_main_targets( dirlist, programs_file, custom_targets_file );
   write_dependencies( dirlist );
   write_trailer( dirlist, useGCC );
 }
@@ -68,9 +69,9 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
   //
   cout << "#\n";
   if(useGCC) {
-    cout << "# Created by gmakemake (";
+    cout << "# Created by makemake (";
   } else {
-    cout << "# Created by makemake (" ;
+    cout << "# Created by smakemake (" ;
   }
   cout << "Darwin " __DATE__ ") on " << ctime( &now );
   cout << "#\n";
@@ -117,22 +118,16 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
   cout << "COMPILE.c = $(CC) $(CFLAGS) $(CPPFLAGS) -c\n";
   cout << "COMPILE.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) -c\n";
   cout << '\n';
-
-  if( in ){
-    cout << "########## Flags from " << header_file << "\n\n";
-    copy(istreambuf_iterator<char>(in),
-         istreambuf_iterator<char>(),
-         ostreambuf_iterator<char>(cout));
-    cout << '\n'; // in case no end-of-line at end of file
-    cout << "########## End of flags from " << header_file << "\n\n";
-  } else if(!noDebugFlag){
+  if(!noDebugFlag){
     cout << "########## Default flags (redefine these with a header.mak file if desired)\n";
     if(useGCC) {
       cout << "CXXFLAGS =\t-ggdb -Wall -ansi -pedantic\n";
       cout << "CFLAGS =\t-ggdb -Wall -ansi -pedantic\n";
+      cout << "BINDIR =./bin\n";
     } else {
       cout << "CXXFLAGS =\t-g -xildoff -xsb\n";
       cout << "CFLAGS =\t-g\n";
+      cout << "BINDIR =./bin\n";
     }
     cout << "CLIBFLAGS =\t-lm\n";
     cout << "CCLIBFLAGS =\t\n";
@@ -141,16 +136,28 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
   } else {
     cout << "########## Default flags (redefine these with a header.mak file if desired)\n";
     if(useGCC) {
-      cout << "CCFLAGS =\t\n";
+      cout << "CXXFLAGS =\t-Wall -ansi -pedantic\n";
+      cout << "CFLAGS =\t-Wall -ansi -pedantic\n";
+      cout << "BINDIR =./bin\n";
     } else {
-      cout << "CCFLAGS =\t-xildoff -xsb\n";
-      cout << "CFLAGS =\n";
+      cout << "CXXFLAGS =\t-xildoff -xsb\n";
+      cout << "CFLAGS =\t\n";
+      cout << "BINDIR =./bin\n";
     }
     cout << "LIBFLAGS =\t-lm\n";
     cout << "########## End of default flags\n";
     
     cout << '\n';
   }
+  if( in ){
+    cout << "########## Flags from " << header_file << "\n\n";
+    copy(istreambuf_iterator<char>(in),
+         istreambuf_iterator<char>(),
+         ostreambuf_iterator<char>(cout));
+    cout << '\n'; // in case no end-of-line at end of file
+    cout << "########## End of flags from " << header_file << "\n\n";
+  } 
+  
   cout << '\n';
 }
 
@@ -180,11 +187,12 @@ void Write::write_lists( DirList &dirlist ){
   cout << '\n';
 }
 
-void Write::write_main_targets( DirList &dirlist, string programs_file ){
+void Write::write_main_targets( DirList &dirlist, string programs_file, string custom_targets_file ){
   string local_libs( !dirlist.archive.empty()
                           ? " $(LOCAL_LIBS)"
                           : "" );
   ifstream in;
+  ifstream custom_targets;
 
   if( dirlist.cpp_main.empty() && dirlist.c_main.empty()
       && dirlist.ass_main.empty() ) {
@@ -204,6 +212,12 @@ void Write::write_main_targets( DirList &dirlist, string programs_file ){
     //
     in.open( programs_file.c_str() );
   }
+  if (custom_targets_file == "//" ){
+    custom_targets.clear( ios::badbit | ios::failbit );
+  } else {
+    custom_targets.open( custom_targets_file.c_str() );
+  }
+
   vector<string> lines;
   istreambuf_iterator<char> init(in), eof;
 
@@ -249,7 +263,7 @@ void Write::write_main_targets( DirList &dirlist, string programs_file ){
       string line = *lit;
       string::iterator colon = find(line.begin(), line.end(), ':');
       if(colon != line.end()) {
-        cout << ' ' << string(line.begin(), colon);
+        cout << " ${BINDIR}/" << string(line.begin(), colon);
       }
     }
 
@@ -297,19 +311,19 @@ void Write::write_main_targets( DirList &dirlist, string programs_file ){
          << "#\n\n"
          << "all:\t";
 #ifdef WINDOWS
-    cout << FileListInserter( dirlist.cpp_main, ".exe" );
+    cout << "${BINDIR}/" << FileListInserter( dirlist.cpp_main, ".exe" );
 #else
-    cout << FileListInserter( dirlist.cpp_main, "" );
+    cout << "${BINDIR}/" << FileListInserter( dirlist.cpp_main, "" );
 #endif
     if( !dirlist.cpp_main.empty() ) {
       cout << " ";
     }
+    if (!dirlist.c_main.empty()) {
 #ifdef WINDOWS
-    cout << FileListInserter( dirlist.c_main, ".exe" );
+      cout << "${BINDIR}/" << FileListInserter( dirlist.c_main, ".exe" );
 #else
-    cout << FileListInserter( dirlist.c_main, "" );
+      cout << "${BINDIR}/" << FileListInserter( dirlist.c_main, "" );
 #endif
-    if( !dirlist.c_main.empty() ) {
       cout << " ";
     }
 #ifdef WINDOWS
@@ -328,6 +342,15 @@ void Write::write_main_targets( DirList &dirlist, string programs_file ){
                             "$(CC) $(CFLAGS)" ,
                             local_libs + " $(CLIBFLAGS)");
   } 
+  // Write custom targets
+  if( custom_targets ){
+    cout << "########## Custom targets from " << custom_targets_file << "\n\n";
+    copy(istreambuf_iterator<char>(custom_targets),
+         istreambuf_iterator<char>(),
+         ostreambuf_iterator<char>(cout));
+    cout << '\n'; // in case no end-of-line at end of file
+    cout << "########## End targets from " << custom_targets_file << "\n\n";
+  } 
 }
 
 void Write::write_main_target_list( const set<string> &list,
@@ -337,19 +360,18 @@ void Write::write_main_target_list( const set<string> &list,
        it != list.end();
        ++it ) {
     string basename( DirList::basename( *it ) );
-
 #ifdef WINDOWS
-    cout << (basename + ".exe") << ":\t"
+    string bin_name(baename + ".exe");
 #else
-    cout << basename << ":\t"
+    string bin_name(basename);
 #endif
+
+    cout << "${BINDIR}/" << bin_name << ":\t"
          << basename << ".o $(OBJFILES)" << '\n';
+    cout << "\t@mkdir -p ${BINDIR}\n";
 
-#ifdef WINDOWS
-    cout << '\t' << compile << " -o " << (basename + ".exe") << ' '
-#else
-    cout << '\t' << compile << " -o " << basename << ' '
-#endif
+    cout << '\t' << compile << " -o "
+         << "${BINDIR}/" << bin_name << ' '
          << basename << ".o $(OBJFILES)" << local_libs
          << "\n\n";
   }
