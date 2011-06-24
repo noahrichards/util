@@ -22,8 +22,12 @@ using namespace std;
 /* Constructor for Inserter object that just initializes fields
  * of struct
  */
-FileListInserter::FileListInserter( const set<string> &f, const char *suf )
-  : files(f), suffix(suf) {}
+FileListInserter::FileListInserter( const set<string> &f )
+  : files(f), prefix(), suffix(), has_suffix(false) {}
+FileListInserter::FileListInserter( const set<string> &f, string pre )
+  : files(f), prefix(pre), suffix(), has_suffix(false) {}
+FileListInserter::FileListInserter( const set<string> &f, string pre, string suf )
+  : files(f), prefix(pre), suffix(suf), has_suffix(true) {}
 
 /* Insertion operator for the previous inserter object. Writes a
  * space-separated list of file names in f.
@@ -35,7 +39,8 @@ ostream & operator<<( ostream &os, const FileListInserter &ins ) {
     if( it != ins.files.begin() ) { // don't put space before first item
       os << " ";
     }
-    if( ins.suffix ) {
+    os << ins.prefix;
+    if( ins.has_suffix ) {
       os << DirList::basename( *it ) << ins.suffix;
     } else {
       os << *it;

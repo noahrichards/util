@@ -1,5 +1,5 @@
 #
-# Created by makemake (Darwin Jun 23 2011) on Thu Jun 23 21:15:50 2011
+# Created by makemake (Darwin Jun 23 2011) on Thu Jun 23 21:49:39 2011
 #
 
 #
@@ -63,7 +63,7 @@ OBJFILES =	dirlist.o write.o
 all:	${BINDIR}/makemake 
 
 ${BINDIR}/makemake:	makemake.o $(OBJFILES)
-	@mkdir -p ${BINDIR}
+	@mkdir -p ${BINDIR}/
 	$(CXX) $(CXXFLAGS) -o ${BINDIR}/makemake makemake.o $(OBJFILES) $(CCLIBFLAGS)
 
 ########## Custom targets from custom_targets.mak
@@ -94,4 +94,4 @@ clean:
 	-/bin/rm $(OBJFILES) makemake.o core 2> /dev/null
 
 realclean:        clean
-	-/bin/rm -rf makemake 
+	-/bin/rm -rf ${BINDIR}/makemake 

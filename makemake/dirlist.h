@@ -31,9 +31,13 @@ using namespace std;
  */
 struct FileListInserter {
   const set<string> &files;
-  const char * suffix;
+  const string prefix;
+  const string suffix;
+  bool has_suffix;
 
-  FileListInserter( const set<string> &f, const char *suf = 0 );
+  explicit FileListInserter( const set<string> &f );
+  FileListInserter( const set<string> &f, string prefix );
+  FileListInserter( const set<string> &f, string prefix, string suffix );
 };
 
 /* Insertion operator for the previous inserter object. Writes a

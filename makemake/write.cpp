@@ -31,6 +31,14 @@
 
 #include "write.h"
 
+const string bin_dir("${BINDIR}/");
+#ifdef WINDOWS
+const string bin_suffix(".exe");
+#else
+const string bin_suffix("");
+#endif
+
+
 // for debug
 // #define WINDOWS
 using namespace std;
@@ -170,15 +178,15 @@ void Write::write_lists( DirList &dirlist ){
   cout << ".PRECIOUS:\t$(SOURCEFILES)\n";
 
   cout << "OBJFILES =\t";
-  cout << FileListInserter( dirlist.cpp_other, ".o" );
+  cout << FileListInserter( dirlist.cpp_other, "", ".o" );
   if( !dirlist.cpp_other.empty() ) {
     cout << " ";
   }
-  cout << FileListInserter( dirlist.c_other, ".o" );
+  cout << FileListInserter( dirlist.c_other, "", ".o" );
   if( !dirlist.c_other.empty() ) {
     cout << " ";
   }
-  cout << FileListInserter( dirlist.ass_other, ".o" );
+  cout << FileListInserter( dirlist.ass_other, "", ".o" );
   cout << '\n';
 
   if( !dirlist.archive.empty() ){
@@ -239,14 +247,9 @@ void Write::write_main_targets( DirList &dirlist, string programs_file, string c
         cerr << "error in format of file : " << programs_file << '\n';
         cerr << line << '\n';
       } else {
-#ifdef WINDOWS
-        lines.push_back(string(line.begin(), colon) + ".exe"
+        lines.push_back(string(line.begin(), colon) + bin_suffix
                         + string(colon, line.end()));
-        products.insert(string(line.begin(), colon) + ".exe");
-#else
-        lines.push_back(line);
-        products.insert(string(line.begin(), colon));
-#endif
+        products.insert(string(line.begin(), colon) + bin_suffix);
       }
     }
     
@@ -263,7 +266,7 @@ void Write::write_main_targets( DirList &dirlist, string programs_file, string c
       string line = *lit;
       string::iterator colon = find(line.begin(), line.end(), ':');
       if(colon != line.end()) {
-        cout << " ${BINDIR}/" << string(line.begin(), colon);
+        cout << " " << bin_dir << string(line.begin(), colon);
       }
     }
 
@@ -310,27 +313,16 @@ void Write::write_main_targets( DirList &dirlist, string programs_file, string c
          << "# Main targets\n"
          << "#\n\n"
          << "all:\t";
-#ifdef WINDOWS
-    cout << "${BINDIR}/" << FileListInserter( dirlist.cpp_main, ".exe" );
-#else
-    cout << "${BINDIR}/" << FileListInserter( dirlist.cpp_main, "" );
-#endif
+
+    cout << FileListInserter( dirlist.cpp_main, bin_dir, bin_suffix );
     if( !dirlist.cpp_main.empty() ) {
       cout << " ";
     }
     if (!dirlist.c_main.empty()) {
-#ifdef WINDOWS
-      cout << "${BINDIR}/" << FileListInserter( dirlist.c_main, ".exe" );
-#else
-      cout << "${BINDIR}/" << FileListInserter( dirlist.c_main, "" );
-#endif
+      cout << FileListInserter( dirlist.c_main, bin_dir, bin_suffix );
       cout << " ";
     }
-#ifdef WINDOWS
-    cout << FileListInserter( dirlist.ass_main, ".exe" );
-#else
-    cout << FileListInserter( dirlist.ass_main, "" );
-#endif
+    cout << FileListInserter( dirlist.ass_main, bin_dir, bin_suffix );
     cout << "\n\n";
     write_main_target_list( dirlist.cpp_main,
                             "$(CXX) $(CXXFLAGS)",
@@ -360,18 +352,13 @@ void Write::write_main_target_list( const set<string> &list,
        it != list.end();
        ++it ) {
     string basename( DirList::basename( *it ) );
-#ifdef WINDOWS
-    string bin_name(baename + ".exe");
-#else
-    string bin_name(basename);
-#endif
 
-    cout << "${BINDIR}/" << bin_name << ":\t"
+    cout << bin_dir << basename << bin_suffix << ":\t"
          << basename << ".o $(OBJFILES)" << '\n';
-    cout << "\t@mkdir -p ${BINDIR}\n";
+    cout << "\t@mkdir -p " << bin_dir << "\n";
 
     cout << '\t' << compile << " -o "
-         << "${BINDIR}/" << bin_name << ' '
+         << bin_dir << basename << bin_suffix << ' '
          << basename << ".o $(OBJFILES)" << local_libs
          << "\n\n";
   }
@@ -411,7 +398,8 @@ void Write::write_dependency_list( const set<string> &list,
       dependencies.insert( ilist.begin(), ilist.end() );
     }
 
-    cout << DirList::basename( name ) << ".o:\t" << dependencies << '\n';
+    cout << DirList::basename( name ) << ".o:\t" 
+         << FileListInserter(dependencies) << '\n';
   }
 }
 
@@ -429,13 +417,13 @@ void Write::write_trailer( DirList &dirlist, bool useGCC ){
   cout << "clean:\n"
        << "\t-/bin/rm $(OBJFILES)";
   if( !dirlist.cpp_main.empty() ){
-    cout << " " << FileListInserter( dirlist.cpp_main, ".o" );
+    cout << " " << FileListInserter( dirlist.cpp_main, "", ".o" );
   }
   if( !dirlist.c_main.empty() ){
-    cout << " " << FileListInserter( dirlist.c_main, ".o" );
+    cout << " " << FileListInserter( dirlist.c_main, "", ".o" );
   }
   if( !dirlist.ass_main.empty() ){
-    cout << " " << FileListInserter( dirlist.ass_main, ".o" );
+    cout << " " << FileListInserter( dirlist.ass_main, "", ".o" );
   }
   if(useGCC) {
     cout << " core 2> /dev/null\n";
@@ -446,27 +434,15 @@ void Write::write_trailer( DirList &dirlist, bool useGCC ){
   cout << "realclean:        clean\n";
   cout << "\t-/bin/rm -rf ";
   if(products.empty()) {
-#ifdef WINDOWS
-    cout << FileListInserter( dirlist.cpp_main, ".exe" );
-#else
-    cout << FileListInserter( dirlist.cpp_main, "" );
-#endif
+    cout << FileListInserter( dirlist.cpp_main, bin_dir, bin_suffix );
     if( !dirlist.cpp_main.empty() ) {
       cout << " ";
     }
-#ifdef WINDOWS
-    cout << FileListInserter( dirlist.c_main, ".exe" );
-#else
-    cout << FileListInserter( dirlist.c_main, "" );
-#endif
+    cout << FileListInserter( dirlist.c_main, bin_dir, bin_suffix );
     if( !dirlist.c_main.empty() ) {
       cout << " ";
     }
-#ifdef WINDOWS
-    cout << FileListInserter( dirlist.ass_main, ".exe" );
-#else
-    cout << FileListInserter( dirlist.ass_main, "" );
-#endif
+    cout << FileListInserter( dirlist.ass_main, bin_dir, bin_suffix );
     if( !dirlist.ass_main.empty() ) {
       cout << " ";
     }
