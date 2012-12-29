@@ -31,44 +31,117 @@
 
 #include "write.h"
 
-const string bin_dir("${BINDIR}/");
-#ifdef WINDOWS
-const string bin_suffix(".exe");
-#else
-const string bin_suffix("");
-#endif
-
-
-// for debug
-// #define WINDOWS
 using namespace std;
 
-Write::Write( DirList &dirlist, bool noDebugFlag, bool useGCC,
+Write::Write( DirList &dirlist, bool noDebugFlag, COMPILER cmp, OS sys,
               const string &header_file, const string &programs_file,
-              const string& custom_targets_file) {
-  write_header(noDebugFlag, useGCC, header_file);
-  write_lists( dirlist );
-  write_main_targets( dirlist, programs_file, custom_targets_file );
-  write_dependencies( dirlist );
-  write_trailer( dirlist, useGCC );
+              const string& custom_targets_file)
+{
+	Comp=cmp;
+	System=sys;
+	NoDebugFlags=noDebugFlag;
+
+	set_system_vars();
+
+	write_header(header_file);
+	write_lists( dirlist );
+	write_main_targets( dirlist, programs_file, custom_targets_file );
+	write_dependencies( dirlist );
+	write_trailer( dirlist);
 }
 
-void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
+string Write::mkdir_cmd(const string& folderName)
+{
+	stringstream s;
+	if(System==WINDOWS)
+		s << "@if not exist " << folderName << " mkdir " << folderName;
+	else
+		s << "@mkdir -p "<<folderName;
+	return s.str();
+}
+
+void Write::set_system_vars()
+{
+	switch(System)
+	{
+	case LINUX:
+		OSName = "Linux";
+		Sep="/";
+		null_file=		"/dev/null";
+		rm_command=		"rm -f";
+		rm_dir_command=	"rm -rf";
+		bin_suffix=		"";
+
+		break;
+
+	case WINDOWS:
+		OSName="Windows";
+		Sep="\\";
+		null_file=		"NUL";
+		rm_command=		"@del /f/q ";
+		rm_dir_command=	"@del /s/f/q ";
+		bin_suffix=		".exe";
+		break;
+
+	default:
+		cerr<<"Operating System Not Implemented"<<endl;
+		break;
+	}
+
+	bin_dir=		"${BINDIR}";
+	bin_dir_name=	"."+Sep+"bin";
+
+
+
+	switch(Comp)
+	{
+	case GCC:
+		CompilerName="GCC";
+		CC="gcc";
+		CXX="g++";
+		DEBUGFLAG = NoDebugFlags ? "":"-ggdb";
+	    CXXFLAGS ="-Wall -ansi -pedantic";
+	    CFLAGS = "-Wall -ansi -pedantic";
+		break;
+
+	case CLANG:
+		CompilerName="Clang";
+		CC="clang";
+		CXX="clang++";
+		DEBUGFLAG = NoDebugFlags ? "":"-ggdb";
+	    CXXFLAGS ="-Wall -ansi -pedantic";
+	    CFLAGS = "-Wall -ansi -pedantic";
+		break;
+
+	case SUN:
+		CompilerName="SUN";
+		CC="cc";
+		CXX="CC";
+		DEBUGFLAG = NoDebugFlags ? "":"-g";
+	    CXXFLAGS ="-xildoff -xsb";
+	    CFLAGS = "";
+		break;
+
+	default:
+		cerr<<"Error: Compiler Not Implemented"<<endl;
+		break;
+	}
+
+	CLIBFLAGS="-lm";
+	CCLIBFLAGS="";
+}
+
+void Write::write_header(string header_file) {
   ifstream in;
   time_t now( time( 0 ) );
 
-  //
   // Open the header file
-  //
+  // They specifically said not to use one.
   if( header_file == "//" ){
-    //
-    // They specifically said not to use one.
-    //
     in.clear( ios::badbit | ios::failbit );
-  } else {
-    //
-    // Open the one they said to use.
-    //
+  }
+  // Open the one they said to use.
+  else{
     in.open( header_file.c_str() );
   }
 
@@ -76,11 +149,7 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
   // Write the header
   //
   cout << "#\n";
-  if(useGCC) {
-    cout << "# Created by makemake (";
-  } else {
-    cout << "# Created by smakemake (" ;
-  }
+  cout << "# Created by makemake for "<< CompilerName <<" on "<<OSName<<" (";
   cout << "Darwin " __DATE__ ") on " << ctime( &now );
   cout << "#\n";
   cout << "\n";
@@ -111,52 +180,24 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
   cout << "\t\t$(AR) $(ARFLAGS) $@ $%\n";
   cout << "\t\t$(RM) $%\n";
   cout << "\n";
-  if(useGCC) {
-    cout << "CC =\t\tgcc\n";
-    cout << "CXX =\t\tg++\n";
-  } else {
-    cout << "CC =\t\tcc\n";
-    cout << "CXX =\t\tCC\n";
-  }
+
+  cout << "CC =\t\t"<<CC<<"\n";
+  cout << "CXX =\t\t"<<CXX<<"\n";
+
+
   cout << "\n";
-  cout << "RM = rm -f\n";
+  cout << "RM = "<<rm_command<<"\n";
   cout << "AR = ar\n";
   cout << "LINK.c = $(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)\n";
   cout << "LINK.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)\n";
   cout << "COMPILE.c = $(CC) $(CFLAGS) $(CPPFLAGS) -c\n";
   cout << "COMPILE.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) -c\n";
   cout << '\n';
-  if(!noDebugFlag){
-    cout << "########## Default flags (redefine these with a header.mak file if desired)\n";
-    if(useGCC) {
-      cout << "CXXFLAGS =\t-ggdb -Wall -ansi -pedantic\n";
-      cout << "CFLAGS =\t-ggdb -Wall -ansi -pedantic\n";
-      cout << "BINDIR =./bin\n";
-    } else {
-      cout << "CXXFLAGS =\t-g -xildoff -xsb\n";
-      cout << "CFLAGS =\t-g\n";
-      cout << "BINDIR =./bin\n";
-    }
-    cout << "CLIBFLAGS =\t-lm\n";
-    cout << "CCLIBFLAGS =\t\n";
-    cout << "########## End of default flags\n";
-    cout << '\n';
-  } else {
-    cout << "########## Default flags (redefine these with a header.mak file if desired)\n";
-    if(useGCC) {
-      cout << "CXXFLAGS =\t-Wall -ansi -pedantic\n";
-      cout << "CFLAGS =\t-Wall -ansi -pedantic\n";
-      cout << "BINDIR =./bin\n";
-    } else {
-      cout << "CXXFLAGS =\t-xildoff -xsb\n";
-      cout << "CFLAGS =\t\n";
-      cout << "BINDIR =./bin\n";
-    }
-    cout << "LIBFLAGS =\t-lm\n";
-    cout << "########## End of default flags\n";
-    
-    cout << '\n';
-  }
+
+
+  write_default_flags();
+
+
   if( in ){
     cout << "########## Flags from " << header_file << "\n\n";
     copy(istreambuf_iterator<char>(in),
@@ -167,6 +208,18 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
   } 
   
   cout << '\n';
+}
+
+void Write::write_default_flags()
+{
+	cout << "########## Default flags (redefine these with a header.mak file if desired)\n";
+	cout << "CXXFLAGS =\t"<<DEBUGFLAG<<" "<<CXXFLAGS<<"\n";
+    cout << "CFLAGS =\t"<<DEBUGFLAG<<" "<<CFLAGS<<"\n";
+    cout << "BINDIR ="<<bin_dir_name<<"\n";
+    cout << "CLIBFLAGS =\t"<<CLIBFLAGS<<"\n";
+    cout << "CCLIBFLAGS =\t"<<CCLIBFLAGS<<"\n";
+    cout << "########## End of default flags\n";
+    cout << '\n';
 }
 
 void Write::write_lists( DirList &dirlist ){
@@ -260,13 +313,13 @@ void Write::write_main_targets( DirList &dirlist, string programs_file, string c
          << "# Main targets\n"
          << "#\n\n"
          << "all:";
-    for(vector<string>::iterator lit = lines.begin();
-        lit != lines.end();
-        ++lit) {
+    for(vector<string>::iterator lit = lines.begin(); lit != lines.end(); ++lit)
+    {
       string line = *lit;
       string::iterator colon = find(line.begin(), line.end(), ':');
-      if(colon != line.end()) {
-        cout << " " << bin_dir << string(line.begin(), colon);
+      if(colon != line.end())
+      {
+        cout << " " << bin_dir<<Sep<< string(line.begin(), colon);
       }
     }
 
@@ -314,15 +367,17 @@ void Write::write_main_targets( DirList &dirlist, string programs_file, string c
          << "#\n\n"
          << "all:\t";
 
-    cout << FileListInserter( dirlist.cpp_main, bin_dir, bin_suffix );
+    cout << FileListInserter( dirlist.cpp_main, bin_dir+Sep, bin_suffix );
     if( !dirlist.cpp_main.empty() ) {
       cout << " ";
     }
+
     if (!dirlist.c_main.empty()) {
-      cout << FileListInserter( dirlist.c_main, bin_dir, bin_suffix );
+      cout << FileListInserter( dirlist.c_main, bin_dir+Sep, bin_suffix );
       cout << " ";
     }
-    cout << FileListInserter( dirlist.ass_main, bin_dir, bin_suffix );
+
+    cout << FileListInserter( dirlist.ass_main, bin_dir+Sep, bin_suffix );
     cout << "\n\n";
     write_main_target_list( dirlist.cpp_main,
                             "$(CXX) $(CXXFLAGS)",
@@ -333,7 +388,8 @@ void Write::write_main_targets( DirList &dirlist, string programs_file, string c
     write_main_target_list( dirlist.ass_main,
                             "$(CC) $(CFLAGS)" ,
                             local_libs + " $(CLIBFLAGS)");
-  } 
+  }
+
   // Write custom targets
   if( custom_targets ){
     cout << "########## Custom targets from " << custom_targets_file << "\n\n";
@@ -353,14 +409,12 @@ void Write::write_main_target_list( const set<string> &list,
        ++it ) {
     string basename( DirList::basename( *it ) );
 
-    cout << bin_dir << basename << bin_suffix << ":\t"
-         << basename << ".o $(OBJFILES)" << '\n';
-    cout << "\t@mkdir -p " << bin_dir << "\n";
+    cout << bin_dir<<Sep<<basename<<bin_suffix<<":\t"<<basename<<".o $(OBJFILES)"<<'\n';
 
-    cout << '\t' << compile << " -o "
-         << bin_dir << basename << bin_suffix << ' '
-         << basename << ".o $(OBJFILES)" << local_libs
-         << "\n\n";
+    cout <<"\t"<<mkdir_cmd(bin_dir)<< "\n";
+
+    cout << '\t' << compile <<" -o "<<bin_dir<<Sep<< basename << bin_suffix << ' '
+         << basename << ".o $(OBJFILES)" << local_libs<< "\n\n";
   }
 }
 
@@ -403,19 +457,25 @@ void Write::write_dependency_list( const set<string> &list,
   }
 }
 
-void Write::write_trailer( DirList &dirlist, bool useGCC ){
+void Write::write_trailer( DirList &dirlist){
   cout << "#\n";
   cout << "# Housekeeping\n";
   cout << "#\n";
   cout << "\n";
-  cout << "Archive:\tarchive.tgz\n";
-  cout << "\n";
-  cout << "archive.tgz:\t$(SOURCEFILES) Makefile\n";
-  cout << "\ttar cf - $(SOURCEFILES) Makefile | gzip > archive.tgz\n";
-  cout << '\n';
 
-  cout << "clean:\n"
-       << "\t-/bin/rm $(OBJFILES)";
+  //Archive Commands not available on Windows
+  if(System==LINUX)
+  {
+	  cout << "Archive:\tarchive.tgz\n";
+	  cout << "\n";
+	  cout << "archive.tgz:\t$(SOURCEFILES) Makefile\n";
+	  cout << "\ttar cf - $(SOURCEFILES) Makefile | gzip > archive.tgz\n";
+	  cout << '\n';
+  }
+
+  cout << "clean:\n";
+  cout <<"\t"<<rm_command<<" $(OBJFILES)";
+
   if( !dirlist.cpp_main.empty() ){
     cout << " " << FileListInserter( dirlist.cpp_main, "", ".o" );
   }
@@ -425,24 +485,32 @@ void Write::write_trailer( DirList &dirlist, bool useGCC ){
   if( !dirlist.ass_main.empty() ){
     cout << " " << FileListInserter( dirlist.ass_main, "", ".o" );
   }
-  if(useGCC) {
-    cout << " core 2> /dev/null\n";
-  } else {
-    cout << " ptrepository SunWS_cache .sb ii_files core 2> /dev/null\n";
+
+  if(Comp==GCC || Comp==CLANG)
+  {
+    cout << " core 2";
   }
-  cout << '\n';
+
+  else if(Comp==SUN)
+  {
+    cout << " ptrepository SunWS_cache .sb ii_files core 2";
+  }
+
+  cout <<">"<<null_file<<"\n";
+
   cout << "realclean:        clean\n";
-  cout << "\t-/bin/rm -rf ";
+  cout << "\t"<<rm_dir_command<<" ";
+
   if(products.empty()) {
-    cout << FileListInserter( dirlist.cpp_main, bin_dir, bin_suffix );
+    cout << FileListInserter( dirlist.cpp_main, bin_dir+Sep, bin_suffix );
     if( !dirlist.cpp_main.empty() ) {
       cout << " ";
     }
-    cout << FileListInserter( dirlist.c_main, bin_dir, bin_suffix );
+    cout << FileListInserter( dirlist.c_main, bin_dir+Sep, bin_suffix );
     if( !dirlist.c_main.empty() ) {
       cout << " ";
     }
-    cout << FileListInserter( dirlist.ass_main, bin_dir, bin_suffix );
+    cout << FileListInserter( dirlist.ass_main, bin_dir+Sep, bin_suffix );
     if( !dirlist.ass_main.empty() ) {
       cout << " ";
     }
@@ -453,5 +521,6 @@ void Write::write_trailer( DirList &dirlist, bool useGCC ){
       cout << *it << ' ';
     }
   }
+  cout <<">"<<null_file;
   cout << endl; // to flush buffer
 }
