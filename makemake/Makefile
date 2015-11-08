@@ -1,5 +1,5 @@
 #
-# Created by makemake (Darwin Jun 23 2011) on Thu Jun 23 21:49:39 2011
+# Created by makemake (Darwin Nov  7 2015) on Sat Nov  7 20:08:50 2015
 #
 
 #
@@ -28,9 +28,13 @@
 		$(COMPILE.cc) -o $% $<
 		$(AR) $(ARFLAGS) $@ $%
 		$(RM) $%
+.cc.a:
+		$(COMPILE.cc) -o $% $<
+		$(AR) $(ARFLAGS) $@ $%
+		$(RM) $%
 
-CC =		gcc
-CXX =		g++
+CC =		clang
+CXX =		clang++
 
 RM = rm -f
 AR = ar
@@ -40,8 +44,8 @@ COMPILE.c = $(CC) $(CFLAGS) $(CPPFLAGS) -c
 COMPILE.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) -c
 
 ########## Default flags (redefine these with a header.mak file if desired)
-CXXFLAGS =	-ggdb -Wall -ansi -pedantic
-CFLAGS =	-ggdb -Wall -ansi -pedantic
+CXXFLAGS =	-ggdb -Wall -pedantic
+CFLAGS =	-ggdb -Wall -pedantic
 BINDIR =./bin
 CLIBFLAGS =	-lm
 CCLIBFLAGS =	

@@ -212,7 +212,7 @@ DirList::FileType DirList::fileType( const string &name ) const {
   if( pos == string::npos ) return OTHER;
   string suffix( name.substr( pos+1, name.size() ) );
   FileType ft = OTHER;
-  if( suffix == "C" || suffix == "cpp" ) ft = CPP;
+  if( suffix == "C" || suffix == "cpp" || suffix == "cc" ) ft = CPP;
   if( suffix == "c" ) ft = C;
   if( suffix == "s" ) ft = ASSEMBLY;
   if( suffix == "H" || suffix == "h" ) ft =  H;

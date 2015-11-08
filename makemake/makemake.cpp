@@ -25,8 +25,8 @@ int main( int argc, char **argv ){
   // have -g debugging option omitted
   bool noDebugFlag( false );
 
-  // Flag indicates using gnu compiler
-  bool useGCC = true;
+  // Flag indicates using gnu compiler. Default is clang.
+  bool useGCC = false;
 
   // check gnu compiler make or sun compiler make
   // if first letter of executable is 'g' then gnu otherwise sun
@@ -39,8 +39,8 @@ int main( int argc, char **argv ){
       argv[0] = exename;
     }
   }
-  if(argv[0][0] == 's') {
-    useGCC = false;
+  if(argv[0][0] == 'g') {
+    useGCC = true;
   }
 
   //
@@ -78,7 +78,7 @@ int main( int argc, char **argv ){
   }
 
   //
-  // Read the current directory (and cmd line arguments) to find 
+  // Read the current directory (and cmd line arguments) to find
   // file names.
   //
   DirList dirlist( argc, argv );

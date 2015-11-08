@@ -77,9 +77,9 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
   //
   cout << "#\n";
   if(useGCC) {
-    cout << "# Created by makemake (";
+    cout << "# Created by gmakemake (";
   } else {
-    cout << "# Created by smakemake (" ;
+    cout << "# Created by makemake (" ;
   }
   cout << "Darwin " __DATE__ ") on " << ctime( &now );
   cout << "#\n";
@@ -89,12 +89,14 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
   cout << "#\n";
   cout << "\n";
   cout << ".SUFFIXES:\n";
-  cout << ".SUFFIXES:\t.a .o .c .C .cpp .s\n";
+  cout << ".SUFFIXES:\t.a .o .c .C .cpp .cc .s\n";
   cout << ".c.o:\n";
   cout << "\t\t$(COMPILE.c) $<\n";
   cout << ".C.o:\n";
   cout << "\t\t$(COMPILE.cc) $<\n";
   cout << ".cpp.o:\n";
+  cout << "\t\t$(COMPILE.cc) $<\n";
+  cout << ".cc.o:\n";
   cout << "\t\t$(COMPILE.cc) $<\n";
   cout << ".s.o:\n";
   cout << "\t\t$(COMPILE.cc) $<\n";
@@ -110,13 +112,17 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
   cout << "\t\t$(COMPILE.cc) -o $% $<\n";
   cout << "\t\t$(AR) $(ARFLAGS) $@ $%\n";
   cout << "\t\t$(RM) $%\n";
+  cout << ".cc.a:\n";
+  cout << "\t\t$(COMPILE.cc) -o $% $<\n";
+  cout << "\t\t$(AR) $(ARFLAGS) $@ $%\n";
+  cout << "\t\t$(RM) $%\n";
   cout << "\n";
   if(useGCC) {
     cout << "CC =\t\tgcc\n";
     cout << "CXX =\t\tg++\n";
   } else {
-    cout << "CC =\t\tcc\n";
-    cout << "CXX =\t\tCC\n";
+    cout << "CC =\t\tclang\n";
+    cout << "CXX =\t\tclang++\n";
   }
   cout << "\n";
   cout << "RM = rm -f\n";
@@ -128,33 +134,31 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
   cout << '\n';
   if(!noDebugFlag){
     cout << "########## Default flags (redefine these with a header.mak file if desired)\n";
-    if(useGCC) {
+    if (useGCC) {
       cout << "CXXFLAGS =\t-ggdb -Wall -ansi -pedantic\n";
       cout << "CFLAGS =\t-ggdb -Wall -ansi -pedantic\n";
-      cout << "BINDIR =./bin\n";
     } else {
-      cout << "CXXFLAGS =\t-g -xildoff -xsb\n";
-      cout << "CFLAGS =\t-g\n";
-      cout << "BINDIR =./bin\n";
+      cout << "CXXFLAGS =\t-ggdb -Wall -pedantic\n";
+      cout << "CFLAGS =\t-ggdb -Wall -pedantic\n";
     }
+    cout << "BINDIR =./bin\n";
     cout << "CLIBFLAGS =\t-lm\n";
     cout << "CCLIBFLAGS =\t\n";
     cout << "########## End of default flags\n";
     cout << '\n';
   } else {
     cout << "########## Default flags (redefine these with a header.mak file if desired)\n";
-    if(useGCC) {
+    if (useGCC) {
+      cout << "CXXFLAGS =\t-Wall -pedantic\n";
+      cout << "CFLAGS =\t-Wall -pedantic\n";
+    } else {
       cout << "CXXFLAGS =\t-Wall -ansi -pedantic\n";
       cout << "CFLAGS =\t-Wall -ansi -pedantic\n";
-      cout << "BINDIR =./bin\n";
-    } else {
-      cout << "CXXFLAGS =\t-xildoff -xsb\n";
-      cout << "CFLAGS =\t\n";
-      cout << "BINDIR =./bin\n";
     }
+    cout << "BINDIR =./bin\n";
     cout << "LIBFLAGS =\t-lm\n";
     cout << "########## End of default flags\n";
-    
+
     cout << '\n';
   }
   if( in ){
@@ -164,8 +168,8 @@ void Write::write_header(bool noDebugFlag, bool useGCC, string header_file) {
          ostreambuf_iterator<char>(cout));
     cout << '\n'; // in case no end-of-line at end of file
     cout << "########## End of flags from " << header_file << "\n\n";
-  } 
-  
+  }
+
   cout << '\n';
 }
 
@@ -252,7 +256,7 @@ void Write::write_main_targets( DirList &dirlist, string programs_file, string c
         products.insert(string(line.begin(), colon) + bin_suffix);
       }
     }
-    
+
     //
     // Executable targets
     //
@@ -271,7 +275,7 @@ void Write::write_main_targets( DirList &dirlist, string programs_file, string c
     }
 
     cout << "\n\n";
-    
+
     for(vector<string>::iterator lit = lines.begin();
         lit != lines.end();
         ++lit) {
@@ -333,7 +337,7 @@ void Write::write_main_targets( DirList &dirlist, string programs_file, string c
     write_main_target_list( dirlist.ass_main,
                             "$(CC) $(CFLAGS)" ,
                             local_libs + " $(CLIBFLAGS)");
-  } 
+  }
   // Write custom targets
   if( custom_targets ){
     cout << "########## Custom targets from " << custom_targets_file << "\n\n";
@@ -342,7 +346,7 @@ void Write::write_main_targets( DirList &dirlist, string programs_file, string c
          ostreambuf_iterator<char>(cout));
     cout << '\n'; // in case no end-of-line at end of file
     cout << "########## End targets from " << custom_targets_file << "\n\n";
-  } 
+  }
 }
 
 void Write::write_main_target_list( const set<string> &list,
@@ -398,7 +402,7 @@ void Write::write_dependency_list( const set<string> &list,
       dependencies.insert( ilist.begin(), ilist.end() );
     }
 
-    cout << DirList::basename( name ) << ".o:\t" 
+    cout << DirList::basename( name ) << ".o:\t"
          << FileListInserter(dependencies) << '\n';
   }
 }
@@ -425,11 +429,7 @@ void Write::write_trailer( DirList &dirlist, bool useGCC ){
   if( !dirlist.ass_main.empty() ){
     cout << " " << FileListInserter( dirlist.ass_main, "", ".o" );
   }
-  if(useGCC) {
-    cout << " core 2> /dev/null\n";
-  } else {
-    cout << " ptrepository SunWS_cache .sb ii_files core 2> /dev/null\n";
-  }
+  cout << " core 2> /dev/null\n";
   cout << '\n';
   cout << "realclean:        clean\n";
   cout << "\t-/bin/rm -rf ";
