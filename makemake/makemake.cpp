@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <cstring>
 
 #include "dirlist.h"
 #include "write.h"
