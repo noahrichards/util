@@ -240,7 +240,7 @@ bool DirList::matchString( ifstream &in, char &ch, const string &s ) {
       return false;
     }
   }
-  return true; // true if stream still good else false for no match
+  return !in.fail(); // true if stream still good else false for no match
 }
 
 /* skipComments
