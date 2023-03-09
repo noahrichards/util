@@ -1,3 +1,3 @@
 install:
 	make
-	cp bin/* /usr/bin/
+	cp bin/* /usr/local/bin/
