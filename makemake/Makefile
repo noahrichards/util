@@ -72,8 +72,9 @@ ${BINDIR}/makemake:	makemake.o $(OBJFILES)
 
 ########## Custom targets from custom_targets.mak
 
-install:	${BINDIR}/makemake
-	cp ${BINDIR}/makemake ~/bin/makemake
+install:
+	make
+	cp bin/* /usr/bin/
 
 ########## End targets from custom_targets.mak
 
