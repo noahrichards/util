@@ -4,6 +4,7 @@
  *
  * $Log: dirlist.cpp,v $
  * Revision 1.1  2006/06/08 02:14:18  swm
+ * Revision 1.2  2023/03/09 18:03:00  kirkland burrill, kab6387@rit.edu
  * Initial revision
  *
  */
@@ -233,15 +234,16 @@ DirList::FileType DirList::fileType( const string &name ) const {
  * first unmatched character or the next character if the string is
  * completely matched.
  */
-bool DirList::matchString( ifstream &in, char &ch, const string &s ) {
-  int n = s.size();
-  for( int i = 0; i < n && in; i++, in.get( ch ) ) {
-    if( s[i] != ch ) {
-      return false;
+bool DirList::matchString(ifstream& in, char& ch, const string& s) {
+    int n = s.size();
+    for (int i = 0; i < n && in.get(ch); i++) {
+        if (s[i] != ch) {
+            return false;
+        }
     }
-  }
-  return in; // true if stream still good else false for no match
+    return (in.eof() && n == in.gcount()); // return true if all characters were matched and the stream reached the end-of-file
 }
+
 
 /* skipComments
  *
