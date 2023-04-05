@@ -1,4 +1,5 @@
 install:
 	make
+	cp bin/makemake bin/gmakemake
 	cp bin/* /usr/local/bin/
-	cp /usr/local/bin/makemake /usr/local/bin/gmakemake
+	
